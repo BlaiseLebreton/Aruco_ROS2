@@ -38,8 +38,8 @@ aruco_msgs::msg::ArucoMarkerArray ArucoTracker::Detect(
   distCoeff.convertTo(distCoeff, CV_64F);
 
   // Load image
-  cv::Mat image;
-  image = cv::imread("/workspaces/ros-ws/launch/aruco.png");
+  cv_bridge::CvImagePtr cv_ptr;
+  cv_ptr = cv_bridge::toCvCopy(image_msg, image_msg->encoding);
 
   // Variables
   std::vector<int> ids;
@@ -47,7 +47,7 @@ aruco_msgs::msg::ArucoMarkerArray ArucoTracker::Detect(
   std::vector<cv::Vec3d> rvecs, tvecs;
 
   // Detect markers
-  cv::aruco::detectMarkers(image, dictionary, corners, ids, detectorParams, rejected);
+  cv::aruco::detectMarkers(cv_ptr->image, dictionary, corners, ids, detectorParams, rejected);
 
   // Resize
   aruco_markers.markers.resize(ids.size());
@@ -61,7 +61,7 @@ aruco_msgs::msg::ArucoMarkerArray ArucoTracker::Detect(
     cv::aruco::estimatePoseSingleMarkers(corners, markerLength, camMatrix, distCoeff, rvecs, tvecs);
     for (unsigned int i = 0; i < ids.size(); i++) {
       // Draw on output image
-      cv::aruco::drawAxis(image, camMatrix, distCoeff, rvecs[i], tvecs[i], markerLength * 2.5f);
+      cv::aruco::drawAxis(cv_ptr->image, camMatrix, distCoeff, rvecs[i], tvecs[i], markerLength * 2.5f);
 
       // Convert rvecs to quaternions
       cv::Mat R;
@@ -87,7 +87,7 @@ aruco_msgs::msg::ArucoMarkerArray ArucoTracker::Detect(
 
     }
     pub_pos_->publish(pose_array);
-    sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", image).toImageMsg();
+    sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", cv_ptr->image).toImageMsg();
     pub_img_->publish(*msg.get());
   }
 
