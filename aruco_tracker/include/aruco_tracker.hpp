@@ -21,7 +21,6 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/aruco.hpp>
 #include <opencv2/calib3d.hpp>
-#include "KFilter/include/KFilter.h"
 
 using namespace std::chrono_literals;
 
@@ -36,15 +35,14 @@ private:
     sensor_msgs::msg::CameraInfo::ConstSharedPtr info_msg
   );
 
-  aruco_msgs::msg::ArucoMarkerArray RunDetection(
+  aruco_msgs::msg::ArucoMarkerArray Detect(
     sensor_msgs::msg::Image::ConstSharedPtr image_msg,
     sensor_msgs::msg::CameraInfo::ConstSharedPtr info_msg
   );
 
-  aruco_msgs::msg::ArucoMarkerArray RunFilter(aruco_msgs::msg::ArucoMarkerArray markers);
-
   // ROS Pub/Sub
   image_transport::CameraSubscriber sub_image_;
+  rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_img_;
   rclcpp::Publisher<aruco_msgs::msg::ArucoMarkerArray>::SharedPtr pub_aru_;
   rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pub_pos_;
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_publisher_;

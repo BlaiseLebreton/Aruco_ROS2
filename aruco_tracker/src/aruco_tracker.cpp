@@ -3,7 +3,8 @@
 ArucoTracker::ArucoTracker() : Node("aruco_tracker") {
   tf_publisher_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
   sub_image_    = image_transport::create_camera_subscription(this, "image", std::bind(&ArucoTracker::ImageCallback, this, std::placeholders::_1, std::placeholders::_2), "raw");
-  pub_pos_      = this->create_publisher<geometry_msgs::msg::PoseArray>("poses",     rclcpp::SystemDefaultsQoS());
+  pub_img_      = this->create_publisher<sensor_msgs::msg::Image          >("detection", rclcpp::SystemDefaultsQoS());
+  pub_pos_      = this->create_publisher<geometry_msgs::msg::PoseArray    >("poses",     rclcpp::SystemDefaultsQoS());
   pub_aru_      = this->create_publisher<aruco_msgs::msg::ArucoMarkerArray>("aruco",     rclcpp::SystemDefaultsQoS());
 
   dictionaryId = 0;
@@ -18,12 +19,11 @@ ArucoTracker::ArucoTracker() : Node("aruco_tracker") {
 void ArucoTracker::ImageCallback(
   sensor_msgs::msg::Image::ConstSharedPtr image_msg,
   sensor_msgs::msg::CameraInfo::ConstSharedPtr info_msg) {
-    aruco_msgs::msg::ArucoMarkerArray markers_detected = RunDetection(image_msg, info_msg);
-    aruco_msgs::msg::ArucoMarkerArray markers_filtered = RunFilter(markers_detected);
-    pub_aru_->publish(markers_filtered);
+    aruco_msgs::msg::ArucoMarkerArray markers_detected = Detect(image_msg, info_msg);
+    pub_aru_->publish(markers_detected);
 }
 
-aruco_msgs::msg::ArucoMarkerArray ArucoTracker::RunDetection(
+aruco_msgs::msg::ArucoMarkerArray ArucoTracker::Detect(
   sensor_msgs::msg::Image::ConstSharedPtr image_msg,
   sensor_msgs::msg::CameraInfo::ConstSharedPtr info_msg) {
 
@@ -60,6 +60,8 @@ aruco_msgs::msg::ArucoMarkerArray ArucoTracker::RunDetection(
   if (ids.size() > 0) {
     cv::aruco::estimatePoseSingleMarkers(corners, markerLength, camMatrix, distCoeff, rvecs, tvecs);
     for (unsigned int i = 0; i < ids.size(); i++) {
+      // Draw on output image
+      cv::aruco::drawAxis(image, camMatrix, distCoeff, rvecs[i], tvecs[i], markerLength * 2.5f);
 
       // Convert rvecs to quaternions
       cv::Mat R;
@@ -85,11 +87,9 @@ aruco_msgs::msg::ArucoMarkerArray ArucoTracker::RunDetection(
 
     }
     pub_pos_->publish(pose_array);
+    sensor_msgs::msg::Image::SharedPtr msg = cv_bridge::CvImage(std_msgs::msg::Header(), "bgr8", image).toImageMsg();
+    pub_img_->publish(*msg.get());
   }
 
   return aruco_markers;
-}
-
-aruco_msgs::msg::ArucoMarkerArray ArucoTracker::RunFilter(aruco_msgs::msg::ArucoMarkerArray markers) {
-  return markers;
 }

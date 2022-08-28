@@ -10,9 +10,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Library
-add_subdirectory(lib/KFilter)
-
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -47,8 +44,6 @@ ament_target_dependencies(aruco_tracker
   tf2_geometry_msgs
   aruco_msgs
 )
-
-target_link_libraries(aruco_tracker KFilter)
 
 install(TARGETS aruco_tracker
   DESTINATION lib/${PROJECT_NAME})
